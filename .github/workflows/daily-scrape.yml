@@ -1,0 +1,30 @@
+name: Daily NEPSE bank price scrape
+
+# Runs automatically every day at 11:15 UTC, which is 5:00 PM Nepal time —
+# a 2-hour buffer after the 3:00 PM market close.
+#
+# `workflow_dispatch` is also included so this can be triggered by hand
+# from the Actions tab, which is useful for testing without waiting for
+# the actual scheduled time.
+on:
+  schedule:
+    - cron: '15 11 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily scrape
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python daily_scrape.py
