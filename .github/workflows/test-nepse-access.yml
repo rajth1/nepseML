@@ -1,0 +1,40 @@
+name: Test NEPSE access options
+
+# Manual trigger only — this is a one-off diagnostic, not the real daily job.
+# Two independent jobs, run in parallel:
+#   1. is the hosted NepseAPI-Unofficial service reachable from Actions?
+#   2. does a REAL client (not bare curl) get through to nepalstock.com,
+#      or is the block deeper than curl's lack of browser-like fingerprint?
+on:
+  workflow_dispatch:
+
+jobs:
+  hosted-api-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl the hosted NepseAPI-Unofficial service
+        run: |
+          echo "Runner public IP:"
+          curl -s https://ifconfig.me || true
+          echo
+          echo "--- /health ---"
+          curl -s -w "\nHTTP status: %{http_code}\n" https://nepseapi.surajrimal.dev/health
+          echo
+          echo "--- /PriceVolume (sample of real payload if reachable) ---"
+          curl -s -w "\nHTTP status: %{http_code}\n" https://nepseapi.surajrimal.dev/PriceVolume | head -c 1500
+          echo
+          echo "--- /validate/stock/NABIL ---"
+          curl -s -w "\nHTTP status: %{http_code}\n" https://nepseapi.surajrimal.dev/validate/stock/NABIL
+
+  real-client-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install NEPSE client (real WASM-token-solving library, not bare curl)
+        run: pip install "git+https://github.com/basic-bgnr/NepseUnofficialApi"
+      - name: Run diagnostic against nepalstock.com directly
+        run: python diagnostic_current_site.py
+        continue-on-error: true  # we want to see the failure output, not just a red X
