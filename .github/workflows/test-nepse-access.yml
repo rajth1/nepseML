@@ -38,6 +38,6 @@ jobs:
       - name: Run diagnostic against nepalstock.com directly
         run: python diagnostic_current_site.py
       - name: Run price/history diagnostic
-        run: python diagnostic_price_and_history.py
+        run: python diagnostic_tickers_and_depth.py
         continue-on-error: true 
         # we want to see the failure output, not just a red X
