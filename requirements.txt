@@ -1,0 +1,2 @@
+psycopg2-binary
+git+https://github.com/basic-bgnr/NepseUnofficialApi
