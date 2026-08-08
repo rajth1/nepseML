@@ -1,0 +1,22 @@
+name: Test NEPSE connectivity from Actions runner
+
+# Manual trigger only — this is a one-off diagnostic, not the real cron job.
+# Run it once from the Actions tab ("Run workflow") to check whether
+# GitHub's hosted runners (US/EU) can reach nepalstock.com at all, since
+# some Nepal-based sites geoblock or rate-limit non-Nepal IP ranges.
+on:
+  workflow_dispatch:
+
+jobs:
+  connectivity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl the site homepage
+        run: |
+          echo "Runner public IP:"
+          curl -s https://ifconfig.me || true
+          echo
+          echo "Response from nepalstock.com/today-price:"
+          curl -s -o /dev/null -w "HTTP status: %{http_code}\n" https://www.nepalstock.com/today-price
+          echo "Response from nepalstock.com API root:"
+          curl -s -o /dev/null -w "HTTP status: %{http_code}\n" https://nepalstock.com/api/
