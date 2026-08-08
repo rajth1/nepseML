@@ -27,4 +27,4 @@ jobs:
       - name: Run daily scrape
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python daily_scrape.py
+        run: python test_scrape_historical_day.py
