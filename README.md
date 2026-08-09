@@ -2,13 +2,10 @@
 
 An end-to-end data engineering and machine learning pipeline that scrapes daily price data for all actively-traded commercial bank stocks on the Nepal Stock Exchange (NEPSE), engineers volatility features, trains a pooled LightGBM model with tracked experiments, and serves next-day volatility forecasts through a deployed REST API — fully automated on a daily/weekly schedule with zero paid infrastructure.
 
-**Live API:** `https://<your-service-name>.onrender.com` — see [API Reference](#api-reference) below.
+**Live API:** `https://nepse-bank-volatility-api.onrender.com/` — see [API Reference](#api-reference) below.
 
 ---
 
-## Why this exists
-
-This is a portfolio project built to demonstrate practical data engineering and ML engineering skills end-to-end: reverse-engineering an obfuscated data source, building a resilient scheduled scraper, designing a normalized schema, engineering leak-free time-series features, running purged walk-forward cross-validation, tracking experiments with MLflow, and deploying a served model — all on free-tier infrastructure.
 
 ## Architecture
 
@@ -86,20 +83,6 @@ render.yaml                Render Blueprint (infrastructure as code)
 - `forecast_date` is computed as the next *calendar* day after the latest available data, not the next NEPSE *trading* day specifically (which would require holiday-calendar awareness). Acceptable given forecasts are consumed as "latest per ticker," not queried by exact date.
 - No authentication on the API — appropriate for a portfolio demo, not for a real production deployment.
 
-## Local development
-
-```bash
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-export DATABASE_URL="postgresql://..."
-
-python backfill_historical.py     # one-time
-python train.py                   # trains, evaluates via CV, registers + promotes to MLflow
-python forecast_writer.py         # scores latest data with the current Production model
-
-uvicorn app:app --reload          # run the API locally
-```
 
 ## API reference
 
@@ -114,6 +97,6 @@ Interactive documentation available at `/docs` on the deployed instance.
 
 ## Future work
 
-- Residual-modeling approach (predict deviation from the rolling-22-day baseline rather than the raw level) to try to decisively beat the naive baseline.
+- Residual-modeling approach (predict deviation from the rolling-22-day baseline rather than the raw level) to decisively beat the naive baseline.
 - Nepal-trading-calendar awareness for exact next-trading-day forecast dates.
 - Expanded feature set as more historical data accumulates naturally via the daily scrape.
