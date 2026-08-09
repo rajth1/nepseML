@@ -7,33 +7,6 @@ An end-to-end data engineering and machine learning pipeline that scrapes daily 
 ---
 
 
-## Architecture
-
-```
-NEPSE (nepalstock.com)
-        │  (WASM-obfuscated auth, decoded via basic-bgnr/NepseUnofficialApi)
-        ▼
-daily_scrape.py  ──────────────►  Postgres (Neon/Supabase)
-        │  (GitHub Actions, daily, 5PM Nepal time)     │  companies
-        │                                              │  daily_prices
-        ▼                                              │  scrape_log
-forecast_writer.py  ─────────────────────────────────► │  forecasts
-        │  (same daily workflow, scores latest         │  model_metadata
-        │   data with current Production model)         ▼
-        │
-train.py + cv.py  ──────────────►  MLflow (SQLite store, committed to repo)
-        │  (GitHub Actions, weekly, Friday)              tracking + model registry
-        ▼
-model_metadata (Postgres)  ◄──────────────────────────────┘
-
-app.py (FastAPI)  ◄── reads only from Postgres, no live model inference
-        │
-        ▼
-Docker container on Render
-```
-
-**Design principle throughout:** the serving layer (FastAPI on Render) never touches MLflow or runs model inference directly — it only reads pre-computed forecasts and metadata from Postgres. This keeps the deployed service simple, fast, and fully decoupled from the training/scraping infrastructure.
-
 ## Tech stack
 
 | Layer | Tool |
