@@ -35,7 +35,7 @@ from cv import (
 )
 
 REGISTERED_MODEL_NAME = "nepse_bank_volatility_model"
-EXPERIMENT_NAME = "nepse_bank_volatility"
+EXPERIMENT_NAME = "nepse_bank_volatility_v2"  # new name, deliberately — see get_or_create_portable_experiment
 
 LGB_PARAMS = {
     "objective": "regression",
@@ -72,6 +72,14 @@ def get_or_create_portable_experiment():
     experiment created locally on Windows bakes in a "C:\\Users\\..."
     path that breaks the moment a different machine (e.g. a Linux GitHub
     Actions runner) tries to log an artifact against the same mlflow.db.
+
+    Uses a NEW experiment name (nepse_bank_volatility_v2, not the original
+    nepse_bank_volatility) deliberately: if an experiment by the old name
+    already exists anywhere in the checked-out mlflow.db with a bad
+    absolute path baked in, looking it up by name would just reuse that
+    corrupted record. A new name guarantees this creates a genuinely fresh
+    experiment, sidestepping any ambiguity about which mlflow.db state is
+    actually present.
     """
     experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
     if experiment is None:
