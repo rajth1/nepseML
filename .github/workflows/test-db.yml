@@ -1,1 +1,15 @@
+name: Test Production Sync
 
+# Manual trigger only — this is a one-off diagnostic, not the real cron job.
+# Run it once from the Actions tab ("Run workflow")
+
+on:
+  workflow_dispatch:
+
+jobs:
+  connectivity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check
+        run: |
+          python chech_production_sync.py
