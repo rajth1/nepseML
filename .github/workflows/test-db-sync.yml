@@ -16,9 +16,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Uncomment if check_production_sync.py requires external packages:
-      # - name: Install dependencies
-      #   run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Check production sync
         env:
