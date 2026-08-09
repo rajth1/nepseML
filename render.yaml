@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nepse-bank-volatility-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # sync: false means Render will NOT read this value from this file
+      # (and it never gets committed to git) — you enter the real Neon/
+      # Supabase connection string once in the Render dashboard instead.
+      - key: DATABASE_URL
+        sync: false
