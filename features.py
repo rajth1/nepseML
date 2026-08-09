@@ -53,37 +53,29 @@ def _add_log_return(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build_feature_dataframe(conn) -> pd.DataFrame:
+def _compute_features(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Returns one row per (symbol, business_date) with:
-      - all lagged/rolling feature columns
-      - target_next_day_variance: what we're trying to predict
-    Rows with NaN features (start of each ticker's series, where rolling
-    windows don't have enough history yet) are dropped.
+    Shared feature computation, used by both the training path (which adds
+    a target and drops the most recent day per ticker) and the inference
+    path (which needs exactly that most-recent day, with no target).
     """
-    df = load_daily_prices(conn)
     df = _add_parkinson_variance(df)
     df = _add_log_return(df)
 
     grouped = df.groupby("symbol", group_keys=False)
 
-    # --- Lagged realized volatility features (HAR-style horizons) ---
-    # shift(1) first so "today's" feature only uses data through YESTERDAY,
-    # then take the rolling mean over the trailing window.
     for window in VOL_LAG_WINDOWS:
         col = f"realized_var_lag_{window}d"
         df[col] = grouped["parkinson_variance"].apply(
             lambda s: s.shift(1).rolling(window).mean()
         )
 
-    # --- Lagged return features ---
     for window in RETURN_LAG_WINDOWS:
         col = f"return_lag_{window}d"
         df[col] = grouped["log_return"].apply(
             lambda s: s.shift(1).rolling(window).mean()
         )
 
-    # --- Rolling turnover / volume features ---
     for window in TURNOVER_LAG_WINDOWS:
         df[f"turnover_lag_{window}d"] = grouped["total_traded_value"].apply(
             lambda s: s.shift(1).rolling(window).mean()
@@ -92,13 +84,22 @@ def build_feature_dataframe(conn) -> pd.DataFrame:
             lambda s: s.shift(1).rolling(window).mean()
         )
 
-    # --- Calendar effect: day of week (NEPSE trades Sunday-Thursday) ---
     df["day_of_week"] = df["business_date"].dt.dayofweek
-
-    # --- Ticker identity: categorical, for the pooled model ---
     df["symbol"] = df["symbol"].astype("category")
+    return df
 
-    # --- Target: NEXT day's Parkinson variance for the SAME ticker ---
+
+def build_feature_dataframe(conn) -> pd.DataFrame:
+    """
+    TRAINING path. Returns one row per (symbol, business_date) with all
+    lagged/rolling feature columns plus target_next_day_variance. Rows
+    with NaN features (start-of-series warmup) or NaN target (the most
+    recent day per ticker, which has no known "tomorrow" yet) are dropped.
+    """
+    df = load_daily_prices(conn)
+    df = _compute_features(df)
+    grouped = df.groupby("symbol", group_keys=False)
+
     df["target_next_day_variance"] = grouped["parkinson_variance"].shift(-1)
 
     feature_cols = (
@@ -116,6 +117,32 @@ def build_feature_dataframe(conn) -> pd.DataFrame:
     print(f"build_feature_dataframe: {before} rows before dropping NaN edges, {after} after.")
 
     return result
+
+
+def build_latest_inference_rows(conn) -> pd.DataFrame:
+    """
+    INFERENCE path. Returns exactly ONE row per ticker — its most recent
+    available business_date — with the same feature columns as training,
+    but NO target column (since tomorrow hasn't happened yet; that's
+    exactly what we're forecasting). This is the row the forecast-writing
+    job feeds to the model.
+    """
+    df = load_daily_prices(conn)
+    df = _compute_features(df)
+
+    feature_cols = (
+        [f"realized_var_lag_{w}d" for w in VOL_LAG_WINDOWS]
+        + [f"return_lag_{w}d" for w in RETURN_LAG_WINDOWS]
+        + [f"turnover_lag_{w}d" for w in TURNOVER_LAG_WINDOWS]
+        + [f"volume_lag_{w}d" for w in TURNOVER_LAG_WINDOWS]
+    )
+
+    result = df[["business_date", "symbol"] + feature_cols + ["day_of_week"]].copy()
+    result = result.dropna(subset=feature_cols)  # drop any ticker without enough history yet
+
+    # Keep only the latest row per ticker.
+    latest_idx = result.groupby("symbol")["business_date"].idxmax()
+    return result.loc[latest_idx].reset_index(drop=True)
 
 
 if __name__ == "__main__":
