@@ -35,6 +35,7 @@ from cv import (
 )
 
 REGISTERED_MODEL_NAME = "nepse_bank_volatility_model"
+EXPERIMENT_NAME = "nepse_bank_volatility"
 
 LGB_PARAMS = {
     "objective": "regression",
@@ -61,6 +62,22 @@ def summarize_cv(cv_results):
         summary[f"{metric}_mean"] = float(cv_results[metric].mean())
         summary[f"{metric}_std"] = float(cv_results[metric].std())
     return summary
+
+
+def get_or_create_portable_experiment():
+    """
+    Forces a RELATIVE artifact location ("./mlruns_artifacts") when the
+    experiment is first created, instead of letting MLflow default to an
+    absolute path based on the current machine/OS. Without this, an
+    experiment created locally on Windows bakes in a "C:\\Users\\..."
+    path that breaks the moment a different machine (e.g. a Linux GitHub
+    Actions runner) tries to log an artifact against the same mlflow.db.
+    """
+    experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
+    if experiment is None:
+        mlflow.create_experiment(EXPERIMENT_NAME, artifact_location="./mlruns_artifacts")
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
 
 
 def main():
@@ -108,7 +125,7 @@ def main():
 
     # --- MLflow logging ---
     mlflow.set_tracking_uri("sqlite:///mlflow.db")
-    mlflow.set_experiment("nepse_bank_volatility")
+    get_or_create_portable_experiment()
 
     with mlflow.start_run() as run:
         mlflow.log_params(LGB_PARAMS)
