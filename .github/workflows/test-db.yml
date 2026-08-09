@@ -11,5 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check
+       env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python chech_production_sync.py
