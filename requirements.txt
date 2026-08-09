@@ -1,2 +1,6 @@
 psycopg2-binary
+pandas
+numpy
+lightgbm
+mlflow
 git+https://github.com/basic-bgnr/NepseUnofficialApi
