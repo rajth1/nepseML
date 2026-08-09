@@ -1,0 +1,40 @@
+name: Weekly model retrain
+
+# Runs every Friday at 10:00 UTC — NEPSE is closed Friday/Saturday, so
+# this is a quiet time that doesn't compete with the daily scrape job.
+on:
+  schedule:
+    - cron: '0 10 * * 5'
+  workflow_dispatch:
+
+# Needed so this workflow can commit mlflow.db and mlruns/ back to the
+# repo — GitHub Actions runners are thrown away after every run, so
+# without committing, all MLflow history would vanish each time.
+permissions:
+  contents: write
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run training, CV, and MLflow registration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python train.py
+
+      - name: Commit MLflow store and artifacts back to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add mlflow.db mlruns/
+          git diff --cached --quiet || git commit -m "Weekly retrain: update MLflow store and artifacts [skip ci]"
+          git push

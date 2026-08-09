@@ -28,3 +28,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python daily_scrape.py
+
+      - name: Write today's forecast using the current production model
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python forecast_writer.py
