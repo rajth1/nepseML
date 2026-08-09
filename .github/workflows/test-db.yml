@@ -19,5 +19,4 @@ jobs:
       - name: Check
        env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          python check_production_sync.py
+        run: python check_production_sync.py
