@@ -1,0 +1,27 @@
+artifact_path: /home/runner/work/nepseML/nepseML/mlruns_artifacts/models/m-ed4e42d1b5ae4af98a605ac6bff382fe/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.skops
+    lgb_version: 4.7.0
+    model_class: lightgbm.sklearn.LGBMRegressor
+    serialization_format: skops
+    skops_trusted_types:
+    - lightgbm.sklearn.LGBMRegressor
+    - collections.OrderedDict
+    - lightgbm.basic.Booster
+    - lightgbm.sklearn.LGBMClassifier
+  python_function:
+    data: model.skops
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.11.15
+mlflow_version: 3.15.1
+model_id: m-ed4e42d1b5ae4af98a605ac6bff382fe
+model_size_bytes: 322415
+model_uuid: m-ed4e42d1b5ae4af98a605ac6bff382fe
+prompts: null
+run_id: c454bf5cd23b4f42ba2e3f3921f75863
+utc_time_created: '2026-08-09 10:39:33.679716'
