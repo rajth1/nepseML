@@ -1,6 +1,6 @@
 # NEPSE Commercial Bank Volatility Forecasting
 
-An end-to-end data engineering and machine learning pipeline that scrapes daily price data for all actively-traded commercial bank stocks on the Nepal Stock Exchange (NEPSE), engineers volatility features, trains a pooled LightGBM model with tracked experiments, and serves next-day volatility forecasts through a deployed REST API — fully automated on a daily/weekly schedule with zero paid infrastructure.
+An end-to-end data engineering and machine learning pipeline that scrapes daily price data for all actively-traded commercial bank stocks on the Nepal Stock Exchange (NEPSE), engineers volatility features, trains a pooled LightGBM model with tracked experiments, and serves next-day volatility forecasts through a deployed REST API — fully automated on a daily/weekly schedule with zero paid infrastructure. The scraper was built on top of https://github.com/basic-bgnr/NepseUnofficialApi repo.
 
 **Live API:** `https://nepse-bank-volatility-api.onrender.com/` — see [API Reference](#api-reference) below.
 
@@ -73,3 +73,7 @@ Interactive documentation available at `/docs` on the deployed instance.
 - Residual-modeling approach (predict deviation from the rolling-22-day baseline rather than the raw level) to decisively beat the naive baseline.
 - Nepal-trading-calendar awareness for exact next-trading-day forecast dates.
 - Expanded feature set as more historical data accumulates naturally via the daily scrape.
+
+# Credits
+
+https://github.com/basic-bgnr/NepseUnofficialApi
