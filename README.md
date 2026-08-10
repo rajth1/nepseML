@@ -74,6 +74,6 @@ Interactive documentation available at `/docs` on the deployed instance.
 - Nepal-trading-calendar awareness for exact next-trading-day forecast dates.
 - Expanded feature set as more historical data accumulates naturally via the daily scrape.
 
-# Credits
+## Credits
 
 https://github.com/basic-bgnr/NepseUnofficialApi
