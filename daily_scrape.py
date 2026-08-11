@@ -2,14 +2,21 @@
 Daily NEPSE commercial bank price scrape.
 
 What this script does, in plain terms:
-  1. Ask NEPSE: "is the market even open today?"
-     - If closed: write "non_trading_day" to the log and stop. This is
-       expected and NOT an error — holidays and weekends happen.
-  2. If open: get today's list of active commercial bank stocks, and for
-     each one, fetch today's high/low/close/volume/turnover numbers.
-  3. Save the bank list and the day's numbers into Postgres.
-  4. Write a one-line summary of what happened (how many worked, how many
-     didn't) so we have a paper trail without digging through logs.
+  1. Always attempts to fetch today's data for all active bank tickers —
+     it does NOT pre-emptively skip based on any "is the market open"
+     status check. That check turned out to answer "is trading happening
+     at this exact instant," not "was today a trading day" — since this
+     job runs well after market close, that check would read "closed"
+     on every single day regardless of whether today was a holiday or a
+     completely normal trading day. It's still called and logged for
+     visibility, but it no longer gates anything.
+  2. The REAL verdict comes from what the 19 fetch attempts actually
+     returned: if every ticker cleanly reports "no data" with no errors,
+     that's a strong, data-driven signal it was a genuine non-trading
+     day. If any real fetch errors occurred, that's treated as an actual
+     failure, not a holiday.
+  3. Save whatever data came back into Postgres.
+  4. Write a one-line summary of what happened so we have a paper trail.
 
 Retry behaviour: if a single bank's fetch fails, we try it up to 2 times
 total before giving up on JUST that bank — the other banks still get
@@ -44,36 +51,21 @@ def get_active_bank_tickers(client):
     ]
 
 
-def is_market_open_today(client):
+def log_market_status_for_visibility(client):
     """
-    Ask NEPSE directly whether the market is open, rather than maintaining
-    our own holiday calendar by hand (which would need constant upkeep).
-
-    We're intentionally cautious here: if this check itself fails or gives
-    an unclear answer, we don't guess — we fall through and let the actual
-    price-fetch step tell us (an all-empty result for every single bank on
-    a day when nothing failed is a strong sign it was a non-trading day).
+    Calls NEPSE's live market-status endpoint purely for logging — NOT as
+    a gate for anything. This turned out to answer "is trading happening
+    right now" rather than "was today a trading day," which is the wrong
+    question for a job that runs after close. Kept as a printed diagnostic
+    in case its actual behavior is worth revisiting later, but nothing in
+    this script's control flow depends on it anymore.
     """
     try:
         status = client.isNepseOpen()
-        # Handle either a plain True/False, or a dict with a status-like field.
-        if isinstance(status, bool):
-            return status
-        if isinstance(status, dict):
-            for key in ("isOpen", "open", "status"):
-                if key in status:
-                    val = status[key]
-                    if isinstance(val, bool):
-                        return val
-                    if isinstance(val, str):
-                        return val.lower() in ("open", "true", "yes")
-        print(f"  (Could not clearly interpret market status response: {status!r} — "
-              f"will fall back to checking whether ANY bank has data today.)")
-        return None
+        print(f"  (For reference only, not used for the decision below: "
+              f"isNepseOpen() returned {status!r})")
     except Exception as e:
-        print(f"  (Market status check failed: {e} — will fall back to checking "
-              f"whether ANY bank has data today.)")
-        return None
+        print(f"  (Market status check failed, ignored: {e})")
 
 
 def fetch_today_price(client, symbol, today):
@@ -169,15 +161,7 @@ def main():
     conn.autocommit = False
     cur = conn.cursor()
 
-    market_open = is_market_open_today(client)
-    if market_open is False:
-        print("Market is closed today. Logging as non_trading_day and stopping.")
-        log_run(cur, "non_trading_day", attempted=0, succeeded=0, failed=0, failed_symbols=[])
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("=== Done ===")
-        return
+    log_market_status_for_visibility(client)
 
     print("Fetching active commercial bank ticker list...")
     banks = get_active_bank_tickers(client)
@@ -186,7 +170,8 @@ def main():
     security_id_map = client.getSecurityIDKeyMap()
 
     succeeded_symbols = []
-    failed_symbols = []
+    no_data_symbols = []   # clean "no rows for today" — expected on holidays
+    error_symbols = []     # an actual exception after retries — a real problem
 
     for company in banks:
         symbol = company["symbol"]
@@ -197,7 +182,7 @@ def main():
             row = fetch_today_price(client, symbol, today)
             if row is None:
                 print(f"    {symbol}: no data returned for today.")
-                failed_symbols.append(symbol)
+                no_data_symbols.append(symbol)
                 continue
 
             upsert_daily_price(cur, symbol, today, row)
@@ -205,34 +190,37 @@ def main():
 
         except Exception as e:
             print(f"    {symbol}: unexpected error, skipping this ticker: {e}")
-            failed_symbols.append(symbol)
+            error_symbols.append(symbol)
             conn.rollback()  # undo any partial work for this ticker, keep going
             cur = conn.cursor()
 
     attempted = len(banks)
     succeeded = len(succeeded_symbols)
-    failed = len(failed_symbols)
+    no_data = len(no_data_symbols)
+    errored = len(error_symbols)
+    failed = no_data + errored  # for the scrape_log column, which just wants a total
 
-    # Fallback safety net: if the market-status check was unclear (None) AND
-    # every single bank came back empty, this is almost certainly a
-    # non-trading day rather than a real failure — relabel it as such.
-    if market_open is None and succeeded == 0 and attempted > 0:
-        print("Market status was unclear, and every bank had no data today — "
-              "treating this as a non-trading day rather than a failure.")
+    # The actual decision: driven entirely by what happened, not by any
+    # pre-fetch status check. Every ticker cleanly reporting "no data,"
+    # with zero real errors, is what a genuine non-trading day looks like.
+    if succeeded == 0 and errored == 0 and no_data == attempted and attempted > 0:
+        print("Every ticker had no data today, with no fetch errors — "
+              "treating this as a non-trading day.")
         status = "non_trading_day"
-    elif failed == 0:
+    elif errored == 0 and no_data == 0:
         status = "success"
     elif succeeded > 0:
         status = "partial_failure"
     else:
         status = "failure"
 
-    log_run(cur, status, attempted, succeeded, failed, failed_symbols)
+    log_run(cur, status, attempted, succeeded, failed, no_data_symbols + error_symbols)
     conn.commit()
     cur.close()
     conn.close()
 
-    print(f"=== Done. status={status}, succeeded={succeeded}/{attempted} ===")
+    print(f"=== Done. status={status}, succeeded={succeeded}/{attempted} "
+          f"(no_data={no_data}, errored={errored}) ===")
 
 
 if __name__ == "__main__":
