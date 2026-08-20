@@ -1,12 +1,12 @@
 """
-Two distinct steps, deliberately kept separate:
+Two steps:
 
-  1. Purged walk-forward CV across many historical folds — this produces
+  1. Purged walk-forward CV across many historical folds this produces
      the QLIKE/MSE numbers we actually trust and log to MLflow, since a
      single 30-day holdout is too small a sample to draw a real
-     conclusion from. This step does NOT produce the deployed model.
+     conclusion from. This step does not produce the deployed model.
 
-  2. A single final fit on the MOST RECENT rolling window (2 years),
+  2. A single final fit on the most recent rolling window (2 years),
      using the last 30 days of that window for early stopping only. This
      is the model that gets registered and promoted to MLflow Production,
      and whose metadata gets written to Postgres.
@@ -68,18 +68,7 @@ def get_or_create_portable_experiment():
     """
     Forces a RELATIVE artifact location ("./mlruns_artifacts") when the
     experiment is first created, instead of letting MLflow default to an
-    absolute path based on the current machine/OS. Without this, an
-    experiment created locally on Windows bakes in a "C:\\Users\\..."
-    path that breaks the moment a different machine (e.g. a Linux GitHub
-    Actions runner) tries to log an artifact against the same mlflow.db.
-
-    Uses a NEW experiment name (nepse_bank_volatility_v2, not the original
-    nepse_bank_volatility) deliberately: if an experiment by the old name
-    already exists anywhere in the checked-out mlflow.db with a bad
-    absolute path baked in, looking it up by name would just reuse that
-    corrupted record. A new name guarantees this creates a genuinely fresh
-    experiment, sidestepping any ambiguity about which mlflow.db state is
-    actually present.
+    absolute path based on the current machine/OS.
     """
     experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
     if experiment is None:

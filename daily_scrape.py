@@ -5,12 +5,12 @@ What this script does, in plain terms:
   1. Always attempts to fetch today's data for all active bank tickers —
      it does NOT pre-emptively skip based on any "is the market open"
      status check. That check turned out to answer "is trading happening
-     at this exact instant," not "was today a trading day" — since this
+     at this exact instant," not "was today a trading day" since this
      job runs well after market close, that check would read "closed"
      on every single day regardless of whether today was a holiday or a
      completely normal trading day. It's still called and logged for
      visibility, but it no longer gates anything.
-  2. The REAL verdict comes from what the 19 fetch attempts actually
+  2. The verdict comes from what the 19 fetch attempts actually
      returned: if every ticker cleanly reports "no data" with no errors,
      that's a strong, data-driven signal it was a genuine non-trading
      day. If any real fetch errors occurred, that's treated as an actual
@@ -19,7 +19,7 @@ What this script does, in plain terms:
   4. Write a one-line summary of what happened so we have a paper trail.
 
 Retry behaviour: if a single bank's fetch fails, we try it up to 2 times
-total before giving up on JUST that bank — the other banks still get
+total before giving up on that bank the other banks still get
 processed normally.
 """
 
@@ -52,14 +52,7 @@ def get_active_bank_tickers(client):
 
 
 def log_market_status_for_visibility(client):
-    """
-    Calls NEPSE's live market-status endpoint purely for logging — NOT as
-    a gate for anything. This turned out to answer "is trading happening
-    right now" rather than "was today a trading day," which is the wrong
-    question for a job that runs after close. Kept as a printed diagnostic
-    in case its actual behavior is worth revisiting later, but nothing in
-    this script's control flow depends on it anymore.
-    """
+    
     try:
         status = client.isNepseOpen()
         print(f"  (For reference only, not used for the decision below: "
@@ -200,9 +193,6 @@ def main():
     errored = len(error_symbols)
     failed = no_data + errored  # for the scrape_log column, which just wants a total
 
-    # The actual decision: driven entirely by what happened, not by any
-    # pre-fetch status check. Every ticker cleanly reporting "no data,"
-    # with zero real errors, is what a genuine non-trading day looks like.
     if succeeded == 0 and errored == 0 and no_data == attempted and attempted > 0:
         print("Every ticker had no data today, with no fetch errors — "
               "treating this as a non-trading day.")

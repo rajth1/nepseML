@@ -1,29 +1,23 @@
 """
-Daily forecast-writing job.
+Daily forecast writing job.
 
 Loads whichever model is currently marked "Production" in MLflow (this
-might be several days old — retraining happens weekly, this job runs
+might be several days old as retraining happens weekly, this job runs
 daily), scores the latest available row of features for each of the 19
 tickers, and writes the result to the forecasts table.
 
 Runs AFTER daily_scrape.py in the same workflow, so "latest available
 row" reflects today's just-scraped data. On a non-trading day, the latest
-available row is unchanged from yesterday — this job will just harmlessly
+available row is unchanged from yesterday this job will just harmlessly
 overwrite the same forecast with itself (upsert), not an error case worth
 special-handling.
 
 Note on units: the model is trained on log-VOLATILITY internally, and
-QLIKE/MSE evaluation happens on the variance scale — but the
+QLIKE/MSE evaluation happens on the variance scale but the
 forecasts.predicted_volatility column is named for volatility (standard
 deviation), so that's what gets stored here, converted from the model's
 internal variance-scale prediction.
 
-Simplification worth knowing about: forecast_date is set to the next
-CALENDAR day after the latest available business_date, not the next
-NEPSE TRADING day specifically (which would need to skip Fri/Sat and
-holidays). Given forecasts are consumed as "the latest forecast per
-ticker" rather than queried by exact date, this is an acceptable
-simplification for this project's scope.
 
 Usage:
     python forecast_writer.py
