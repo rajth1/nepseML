@@ -1,7 +1,7 @@
 name: Daily NEPSE bank price scrape
 
-# Runs automatically every day at 11:15 UTC, which is 5:00 PM Nepal time —
-# a 2-hour buffer after the 3:00 PM market close.
+# Runs automatically every day at 11:15 UTC
+# a ~ 2-hour buffer after the 3:00 PM market close.
 #
 # `workflow_dispatch` is also included so this can be triggered by hand
 # from the Actions tab, which is useful for testing without waiting for
