@@ -1,7 +1,6 @@
 name: Weekly model retrain
 
-# Runs every Friday at 10:00 UTC — NEPSE is closed Friday/Saturday, so
-# this is a quiet time that doesn't compete with the daily scrape job.
+# Runs every Friday at 10:00 UTC
 on:
   schedule:
     - cron: '0 10 * * 5'
