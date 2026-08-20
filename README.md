@@ -11,7 +11,7 @@ An end-to-end data engineering and machine learning pipeline that scrapes daily 
 
 | Layer | Tool |
 |---|---|
-| Data source | NEPSE official site, via reverse-engineered auth (`basic-bgnr/NepseUnofficialApi`) |
+| Data source | NEPSE official site via community library (`basic-bgnr/NepseUnofficialApi`) |
 | Database | PostgreSQL (Neon free tier) |
 | Scheduling | GitHub Actions (cron) |
 | Modeling | LightGBM (pooled, ticker as categorical) |
