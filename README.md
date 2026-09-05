@@ -76,4 +76,4 @@ Interactive documentation available at `/docs` on the deployed instance.
 
 ## Credits
 
-- **[NepseUnofficialApi](https://github.com/basic-bgnr/NepseUnofficialApi)**: This project relies on the community-developed unofficial API for data scraping, providing essential access to NEPSE market data.
+- **[NepseUnofficialApi](https://github.com/basic-bgnr/NepseUnofficialApi)**: This project utilizes specific code segments from this repository for scraping NEPSE data directly, rather than connecting to an external API service.
