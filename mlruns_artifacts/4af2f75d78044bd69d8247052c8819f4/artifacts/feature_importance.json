@@ -1,0 +1,13 @@
+{
+  "symbol": 71,
+  "realized_var_lag_1d": 44,
+  "realized_var_lag_5d": 48,
+  "realized_var_lag_22d": 32,
+  "return_lag_1d": 25,
+  "return_lag_5d": 48,
+  "turnover_lag_5d": 9,
+  "turnover_lag_10d": 2,
+  "volume_lag_5d": 33,
+  "volume_lag_10d": 8,
+  "day_of_week": 10
+}
